@@ -53,7 +53,7 @@ steps:
         --concurrency 80 \
         --min-instances 1 \
         --max-instances 10 \
-        --update-env-vars "GCP_PROJECT=$PROJECT_ID,QDRANT_COLLECTION_NAME=metrologia_docs,FIRESTORE_DATABASE=pln-proyecto,FIRESTORE_COLLECTION=logs-agente,PORT=8080" \
+        --update-env-vars "GCP_PROJECT=$PROJECT_ID,QDRANT_COLLECTION_NAME=metrologia_docs,FIRESTORE_DATABASE=pln-proyecto,FIRESTORE_COLLECTION=logs-agente" \
         --update-secrets "GEMINI_API_KEY=gemini-api-key:latest,QDRANT_URL=qdrant-url:latest,QDRANT_API_KEY=qdrant-api-key:latest"
 
 options:

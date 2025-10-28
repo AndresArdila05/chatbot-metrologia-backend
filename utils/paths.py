@@ -12,7 +12,7 @@ else:
 
 # LLM - Sigue usando Google Generative AI (API Key gratuita)
 llm_model_gemini = ChatGoogleGenerativeAI(
-    model="gemini-2.0-flash-exp",
+    model="gemini-2.5-flash",
     google_api_key=gemini_api_key,
     temperature=0.3,
     convert_system_message_to_human=True

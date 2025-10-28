@@ -382,6 +382,7 @@ Verifica que la cuenta de servicio tenga el rol:
 
 Proyecto desarrollado como parte del trabajo de grado en PLN para el Laboratorio de Metrología.
 
-## Licencia
-
-Este proyecto es de uso académico.
+- Andrés Camilo Ardila Diaz <anardilad@unal.edu.co>
+- Andres Camilo Torres Cajamarca <antorresca@unal.edu.co>
+- Christian Camilo Barriga Castellanos <cbarrigac@unal.edu.co>
+- Mateo Sebastian Barragan Ibanez <mbarragani@unal.edu.co>

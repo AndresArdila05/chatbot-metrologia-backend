@@ -1,0 +1,14 @@
+fastapi==0.110.0
+uvicorn==0.27.1
+langchain==0.3.19
+langchain-google-genai
+langchain-google-vertexai
+langchain-community
+langchain-qdrant
+qdrant-client
+langgraph==0.3.7
+google-cloud-firestore==2.18.0
+pydantic==2.11.3
+pytz==2024.1
+python-multipart==0.0.10
+python-dotenv==1.0.0

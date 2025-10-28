@@ -1,0 +1,60 @@
+steps:
+  # Paso 1: Generar variables de configuración
+  - name: 'gcr.io/cloud-builders/gcloud'
+    entrypoint: 'bash'
+    args:
+    - '-c'
+    - |
+      echo "us-central1" > region.txt
+      echo "chatbot-metrologia-repo" > repo_artifact.txt
+      echo "chatbot-metrologia-backend" > image_repo.txt
+      echo "chatbot-metrologia-backend" > service_name.txt
+      echo "$(cat region.txt)-docker.pkg.dev/$PROJECT_ID/$(cat repo_artifact.txt)/$(cat image_repo.txt):latest" > image_name.txt
+
+  # Paso 2: Crear repositorio de Artifact Registry si no existe
+  - name: 'gcr.io/cloud-builders/gcloud'
+    entrypoint: 'bash'
+    args:
+    - '-c'
+    - |
+      if gcloud artifacts repositories describe "$(cat repo_artifact.txt)" --location="$(cat region.txt)" >/dev/null 2>&1; then
+        echo "Repositorio ya existe, continuando..."
+      else
+        echo "Creando repositorio en Artifact Registry..."
+        gcloud artifacts repositories create "$(cat repo_artifact.txt)" \
+          --location "$(cat region.txt)" \
+          --description "Repositorio para chatbot de metrología" \
+          --repository-format="DOCKER"
+      fi
+
+  # Paso 3: Construir y subir imagen Docker a Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    entrypoint: 'bash'
+    args:
+    - '-c'
+    - |
+      docker build -t "$(cat image_name.txt)" .
+      docker push "$(cat image_name.txt)"
+
+  # Paso 4: Desplegar en Cloud Run
+  - name: 'gcr.io/cloud-builders/gcloud'
+    entrypoint: 'bash'
+    args:
+    - '-c'
+    - |
+      gcloud run deploy "$(cat service_name.txt)" \
+        --image "$(cat image_name.txt)" \
+        --region "$(cat region.txt)" \
+        --platform managed \
+        --allow-unauthenticated \
+        --memory 2Gi \
+        --cpu 1 \
+        --timeout 300 \
+        --concurrency 80 \
+        --min-instances 1 \
+        --max-instances 10 \
+        --update-env-vars "GCP_PROJECT=$PROJECT_ID,QDRANT_COLLECTION_NAME=metrologia_docs,FIRESTORE_DATABASE=pln-proyecto,FIRESTORE_COLLECTION=logs-agente,PORT=8080" \
+        --update-secrets "GEMINI_API_KEY=gemini-api-key:latest,QDRANT_URL=qdrant-url:latest,QDRANT_API_KEY=qdrant-api-key:latest"
+
+options:
+  logging: CLOUD_LOGGING_ONLY

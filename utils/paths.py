@@ -18,13 +18,14 @@ llm_model_gemini = ChatGoogleGenerativeAI(
     convert_system_message_to_human=True
 )
 
-# Embeddings - Cambio a Vertex AI (cuotas más altas, requiere billing)
+# Embeddings - DEBE SER EL MISMO que en el notebook de ingesta
+# ⚠️ IMPORTANTE: Usar gemini-embedding-001 (mismo que ingesta_pdfs_qdrant.ipynb)
 embedding_model = VertexAIEmbeddings(
-    model_name="text-embedding-004",
+    model_name="gemini-embedding-001",  # ← Mismo modelo que el notebook
     project=os.getenv("GCP_PROJECT", "sodium-pager-473602-n7"),
-    location="us-central1"
+    location="us-east1"  # ← Mismo location que el notebook
 )
 
 print("[PATHS] LLM: Gemini 2.5 Flash (API Key)")
-print("[PATHS] Embeddings: Vertex AI text-embedding-004 (GCP)")
+print("[PATHS] Embeddings: Vertex AI gemini-embedding-001 (GCP) - MISMO QUE INGESTA")
 print("[PATHS] Modelos inicializados correctamente")

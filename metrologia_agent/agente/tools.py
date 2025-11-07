@@ -50,7 +50,8 @@ def buscar_conocimiento_metrologia(query: Annotated[str, "Consulta del usuario s
             page = hit.payload.get('page', 'N/A')
             text = hit.payload.get('text', '')
             
-            context_parts.append(f"[Documento {i} - Fuente: {source}, Página: {page}]\n{text}\n")
+            # No incluir etiquetas de documento, solo el contenido
+            context_parts.append(f"{text}\n")
         
         if not context_parts:
             logger.warning("[TOOL] Todos los documentos tienen baja similitud")

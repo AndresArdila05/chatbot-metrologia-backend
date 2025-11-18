@@ -1,31 +1,29 @@
 import os
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_google_vertexai import VertexAIEmbeddings
+from langchain_google_vertexai import ChatVertexAI, VertexAIEmbeddings
 
-# Obtener API Key de Gemini desde variable de entorno
-gemini_api_key = os.getenv("GEMINI_API_KEY", "")
+# Configuración de GCP
+PROJECT_ID = os.getenv("GCP_PROJECT", "sodium-pager-473602-n7")
+LOCATION = "us-east1"
 
-if not gemini_api_key:
-    print("[PATHS] WARNING: GEMINI_API_KEY no está configurada")
-else:
-    print("[PATHS] API Key de Gemini cargada desde variable de entorno")
+print(f"[PATHS] GCP Project: {PROJECT_ID}")
+print(f"[PATHS] Location: {LOCATION}")
 
-# LLM - Sigue usando Google Generative AI (API Key gratuita)
-llm_model_gemini = ChatGoogleGenerativeAI(
-    model="gemini-2.5-flash",
-    google_api_key=gemini_api_key,
+# LLM - Usando Vertex AI (Gemini 2.5 Flash)
+llm_model_gemini = ChatVertexAI(
+    model_name="gemini-2.5-flash",
     temperature=0.3,
-    convert_system_message_to_human=True
+    project=PROJECT_ID,
+    location=LOCATION
 )
 
 # Embeddings - DEBE SER EL MISMO que en el notebook de ingesta
 # ⚠️ IMPORTANTE: Usar gemini-embedding-001 (mismo que ingesta_pdfs_qdrant.ipynb)
 embedding_model = VertexAIEmbeddings(
     model_name="gemini-embedding-001",  # ← Mismo modelo que el notebook
-    project=os.getenv("GCP_PROJECT", "sodium-pager-473602-n7"),
-    location="us-east1"  # ← Mismo location que el notebook
+    project=PROJECT_ID,
+    location=LOCATION  # ← Mismo location que el notebook
 )
 
-print("[PATHS] LLM: Gemini 2.5 Flash (API Key)")
-print("[PATHS] Embeddings: Vertex AI gemini-embedding-001 (GCP) - MISMO QUE INGESTA")
+print("[PATHS] LLM: Vertex AI - Gemini 2.5 Flash")
+print("[PATHS] Embeddings: Vertex AI - gemini-embedding-001 (MISMO QUE INGESTA)")
 print("[PATHS] Modelos inicializados correctamente")

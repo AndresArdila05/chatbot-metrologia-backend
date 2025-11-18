@@ -18,8 +18,8 @@ Este proyecto implementa un agente conversacional especializado en metrología q
 
 - **Framework**: FastAPI
 - **Orquestación de agentes**: LangGraph
-- **LLM**: Gemini 2.5 Flash Exp (Google Generative AI - API Key)
-- **Embeddings**: Vertex AI text-embedding-004 (cuotas más altas, requiere billing en GCP)
+- **LLM**: Gemini 2.5 Flash (Vertex AI)
+- **Embeddings**: Vertex AI gemini-embedding-001
 - **Vector Store**: Qdrant Cloud
 - **Memoria**: Google Cloud Firestore
 
@@ -56,24 +56,23 @@ chatbot-metrologia-backend/
 2. **Google Cloud SDK** configurado con autenticación
 3. **Cuenta en Qdrant Cloud** (cluster gratuito)
 4. **Base de datos vectorial** con documentos de metrología cargados (ver notebook `ingesta_pdfs_qdrant.ipynb`)
-5. **API Key de Gemini** (obtener en https://aistudio.google.com/app/apikey)
-6. **Billing habilitado en GCP** (para usar Vertex AI Embeddings)
+5. **Billing habilitado en GCP** (para usar Vertex AI - LLM y Embeddings)
 
 ### Configuración de Google Cloud
 
 #### 1. Habilitar Vertex AI API
 
-Para usar los embeddings de Vertex AI, debes habilitar la API:
+Para usar Vertex AI (LLM y embeddings), debes habilitar la API:
 
 ```bash
 gcloud services enable aiplatform.googleapis.com --project=sodium-pager-473602-n7
 ```
 
-**Importante**: Vertex AI requiere tener billing habilitado en tu proyecto de GCP. Las cuotas son mucho más generosas que la API gratuita de Gemini.
+**Importante**: Vertex AI requiere tener billing habilitado en tu proyecto de GCP.
 
 #### 2. Autenticación con GCP
 
-Autentícate para permitir acceso a Firestore y Vertex AI:
+Autentícate para permitir acceso a Vertex AI y Firestore:
 
 ```bash
 gcloud auth application-default login
@@ -107,21 +106,6 @@ export QDRANT_COLLECTION_NAME="metrologia_docs"
 
 **Importante**: Antes de ejecutar el agente, debes haber ingresado los documentos PDF usando el notebook `ingesta_pdfs_qdrant.ipynb` en la raíz del proyecto.
 
-#### 5. API Key de Gemini
-
-Obtén tu API Key de Gemini:
-
-1. Ve a [Google AI Studio](https://aistudio.google.com/app/apikey)
-2. Inicia sesión con tu cuenta de Google
-3. Crea una nueva API Key
-4. Copia la clave y configúrala como variable de entorno:
-
-```bash
-export GEMINI_API_KEY="tu-api-key-de-gemini"
-```
-
-**Nota**: Esta API Key se usa solo para el LLM (generación de texto). Los embeddings usan Vertex AI que no requiere API Key adicional (usa las credenciales de gcloud).
-
 ### Instalación
 
 1. **Clonar el repositorio y navegar al backend**:
@@ -154,7 +138,7 @@ Copia `env.example` y ajusta los valores:
 
 ```bash
 # Variables de entorno requeridas
-export GEMINI_API_KEY=tu-gemini-api-key-aqui
+export GCP_PROJECT=sodium-pager-473602-n7
 export QDRANT_URL=https://tu-cluster.aws.cloud.qdrant.io
 export QDRANT_API_KEY=tu-api-key
 export QDRANT_COLLECTION_NAME=metrologia_docs
@@ -337,7 +321,7 @@ gcloud run deploy chatbot-metrologia-backend \
     --project sodium-pager-473602-n7 \
     --region us-central1 \
     --allow-unauthenticated \
-    --set-env-vars GEMINI_API_KEY=<TU_GEMINI_API_KEY>,QDRANT_URL=<TU_URL>,QDRANT_API_KEY=<TU_API_KEY>,QDRANT_COLLECTION_NAME=metrologia_docs
+    --set-env-vars QDRANT_URL=<TU_URL>,QDRANT_API_KEY=<TU_API_KEY>,QDRANT_COLLECTION_NAME=metrologia_docs,GCP_PROJECT=sodium-pager-473602-n7
 ```
 
 ## Desarrollo
@@ -366,12 +350,13 @@ Verifica que:
 - `QDRANT_URL` y `QDRANT_API_KEY` estén correctamente configurados
 - Hayas ingresado los documentos con el notebook `ingesta_pdfs_qdrant.ipynb`
 
-### Error: GEMINI_API_KEY no configurada
+### Error: Vertex AI no accesible
 
-Si ves el warning `WARNING: GEMINI_API_KEY no está configurada`, verifica que:
-- Hayas obtenido tu API Key de https://aistudio.google.com/app/apikey
-- La variable de entorno `GEMINI_API_KEY` esté configurada correctamente
-- La API Key sea válida y no haya expirado
+Verifica que:
+- La API de Vertex AI esté habilitada: `gcloud services enable aiplatform.googleapis.com`
+- Hayas autenticado con `gcloud auth application-default login`
+- El proyecto de GCP tenga billing habilitado
+- La variable `GCP_PROJECT` esté configurada correctamente
 
 ### Error: Firestore no accesible
 

@@ -69,42 +69,107 @@ def buscar_conocimiento_metrologia(query: Annotated[str, "Consulta del usuario s
 @tool
 def verificar_alcance_consulta(query: Annotated[str, "Consulta del usuario"]) -> str:
     """
-    Verifica si la consulta del usuario está dentro del alcance del laboratorio de metrología.
+    Verifica si la consulta del usuario está relacionada con metrología y mediciones.
     
-    El agente está limitado a responder sobre:
-    - Normas técnicas de metrología (ISO, NTC, etc.)
-    - Instrumentos de medición y calibración
-    - Procedimientos de calibración y aseguramiento de calidad
-    - Información administrativa del laboratorio
-    - Servicios de metrología ofrecidos
+    El agente puede responder sobre:
+    - Conceptos fundamentales de metrología (error, exactitud, precisión, resolución, etc.)
+    - Instrumentos de medición (uso, tipos, especificaciones, mantenimiento)
+    - Normas técnicas (ISO, NTC, GUM, VIM, ISO 17025, etc.)
+    - Procedimientos de calibración y medición
+    - Análisis de datos metrológicos (incertidumbre, estadística, validación)
+    - Trazabilidad y patrones de medida
+    - Sistema Internacional de Unidades (SI)
+    - Servicios y procedimientos del laboratorio
+    - Seguridad y buenas prácticas
     
     Args:
         query: La pregunta o consulta del usuario
         
     Returns:
-        Indicación de si la consulta está dentro del alcance
+        Indicación de si la consulta está relacionada con metrología
     """
     try:
         logger.info(f"[TOOL] Verificando alcance de: '{query}'")
         
+        # Palabras clave ampliadas para incluir conceptos metrológicos generales
         keywords_metrologia = [
+            # Conceptos fundamentales
             'calibracion', 'calibración', 'metrologia', 'metrología',
-            'norma', 'iso', 'ntc', 'instrumento', 'medicion', 'medición',
-            'laboratorio', 'equipo', 'certificado', 'incertidumbre',
-            'trazabilidad', 'patron', 'patrón', 'balanza', 'termómetro',
-            'presión', 'temperatura', 'masa', 'volumen', 'servicio',
-            'horario', 'costo', 'precio', 'administrativo'
+            'medicion', 'medición', 'medir', 'medida', 'medidas',
+            'error', 'exactitud', 'precision', 'precisión', 'resolucion', 'resolución',
+            'incertidumbre', 'trazabilidad', 'repetibilidad', 'reproducibilidad',
+            'sensibilidad', 'deriva', 'estabilidad', 'linealidad',
+            
+            # Errores y análisis
+            'paralaje', 'sistematico', 'sistemático', 'aleatorio', 'desviacion', 'desviación',
+            'varianza', 'media', 'promedio', 'estadistica', 'estadística',
+            
+            # Instrumentos generales
+            'instrumento', 'equipo', 'aparato', 'dispositivo',
+            'calibrador', 'vernier', 'pie de rey', 'micrometro', 'micrómetro',
+            'comparador', 'balanza', 'termometro', 'termómetro', 'multimetro', 'multímetro',
+            'rugosimetro', 'rugosímetro', 'nivel', 'goniometro', 'goniómetro',
+            'bloque patron', 'bloque patrón', 'galga', 'patrón',
+            
+            # Magnitudes
+            'temperatura', 'presion', 'presión', 'masa', 'peso', 'volumen',
+            'longitud', 'distancia', 'altura', 'diametro', 'diámetro',
+            'velocidad', 'fuerza', 'corriente', 'voltaje', 'resistencia',
+            'humedad', 'flujo', 'caudal', 'angular', 'angulo', 'ángulo',
+            
+            # Normas y documentos
+            'norma', 'iso', 'ntc', 'vim', 'gum', '17025', 'certificado',
+            'datasheet', 'especificacion', 'especificación',
+            
+            # Sistema Internacional
+            'si', 'kilogramo', 'metro', 'segundo', 'kelvin', 'ampere', 'mol', 'candela',
+            'unidad', 'unidades',
+            
+            # Procedimientos
+            'procedimiento', 'protocolo', 'metodo', 'método',
+            'ensayo', 'prueba', 'verificacion', 'verificación', 'validacion', 'validación',
+            
+            # Laboratorio
+            'laboratorio', 'servicio', 'prestamo', 'préstamo',
+            'horario', 'costo', 'precio', 'requisito',
+            'seguridad', 'limpieza', 'almacenamiento', 'bata', 'guantes',
+            
+            # Análisis de incertidumbre
+            'tipo a', 'tipo b', 'combinada', 'expandida', 'presupuesto',
+            
+            # Condiciones ambientales
+            'ambiental', 'condiciones', 'humedad relativa',
+            
+            # Conceptos de calidad
+            'conformidad', 'no conforme', 'auditoria', 'auditoría',
+            
+            # Informe y documentación
+            'informe', 'practica', 'práctica', 'datos', 'registro', 'reporte'
         ]
         
         query_lower = query.lower()
         matches = sum(1 for keyword in keywords_metrologia if keyword in query_lower)
         
-        if matches > 0:
-            logger.info(f"[TOOL] Consulta dentro del alcance ({matches} coincidencias)")
+        # Verificar también si contiene palabras que indiquen que NO es de metrología
+        non_metrologia_keywords = [
+            'receta', 'cocina', 'politica', 'política', 'futbol', 'fútbol',
+            'musica', 'música', 'pelicula', 'película', 'juego', 'videojuego',
+            'moda', 'ropa', 'chiste', 'adivinanza'
+        ]
+        
+        non_matches = sum(1 for keyword in non_metrologia_keywords if keyword in query_lower)
+        
+        if non_matches > 0:
+            logger.info("[TOOL] Consulta claramente fuera del alcance")
+            return "FUERA_DEL_ALCANCE"
+        elif matches > 0:
+            logger.info(f"[TOOL] Consulta relacionada con metrología ({matches} coincidencias)")
             return "DENTRO_DEL_ALCANCE"
         else:
-            logger.info("[TOOL] Consulta fuera del alcance")
-            return "FUERA_DEL_ALCANCE"
+            # Si no hay coincidencias claras pero tampoco es obviamente ajeno,
+            # dejamos que el agente lo maneje (puede ser una pregunta genérica sobre medición)
+            logger.info("[TOOL] Consulta sin palabras clave claras - permitiendo al agente evaluar")
+            return "DENTRO_DEL_ALCANCE"
             
     except Exception as e:
         logger.error(f"[TOOL] Error verificando alcance: {e}")

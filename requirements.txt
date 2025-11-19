@@ -5,7 +5,7 @@ langchain-google-genai
 langchain-google-vertexai
 langchain-community
 langchain-qdrant
-qdrant-client
+qdrant-client==1.15.1
 langgraph==0.3.7
 google-cloud-firestore==2.18.0
 pydantic==2.11.3

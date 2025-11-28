@@ -41,6 +41,7 @@ class ChatRequest(BaseModel):
     """Modelo de entrada para el endpoint de chat."""
     mensaje: str = Field(..., description="Mensaje del usuario", example="¿Qué es la calibración de instrumentos?")
     conversation_id: str = Field(..., description="ID único de la conversación", example="conv-123-456")
+    user_email: str = Field(..., description="Email del usuario autenticado", example="usuario@unal.edu.co")
 
 class ChatResponse(BaseModel):
     """Modelo de respuesta para el endpoint de chat."""
@@ -65,6 +66,18 @@ class HealthResponse(BaseModel):
     timestamp: str = Field(..., description="Marca de tiempo de la verificación")
     version: str = Field(..., description="Versión de la API")
 
+class ConversationSummary(BaseModel):
+    """Modelo para resumen de una conversación."""
+    conversation_id: str = Field(..., description="ID de la conversación")
+    first_message: str = Field(..., description="Primer mensaje de la conversación")
+    last_timestamp: str = Field(..., description="Última actualización")
+    message_count: int = Field(..., description="Número de intercambios")
+
+class ConversationsListResponse(BaseModel):
+    """Modelo de respuesta para el endpoint de lista de conversaciones."""
+    user_email: str = Field(..., description="Email del usuario")
+    conversations: List[ConversationSummary] = Field(..., description="Lista de conversaciones del usuario")
+
 @app.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
     """
@@ -79,7 +92,8 @@ async def chat(request: ChatRequest):
         
         config = {
             "configurable": {
-                "thread_id": request.conversation_id
+                "thread_id": request.conversation_id,
+                "user_email": request.user_email
             }
         }
         
@@ -97,6 +111,7 @@ async def chat(request: ChatRequest):
         
         log_dict = {
             "conversation_id": request.conversation_id,
+            "user_email": request.user_email,
             "timestamp": timestamp,
             "user_message": request.mensaje,
             "agent_response": respuesta_texto,
@@ -121,20 +136,23 @@ async def chat(request: ChatRequest):
         raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
 
 @app.get("/historial/{conversation_id}", response_model=HistorialResponse)
-async def obtener_historial(conversation_id: str):
+async def obtener_historial(conversation_id: str, user_email: str):
     """
     Obtiene el historial de una conversación específica.
     
     Recupera todos los mensajes de una conversación desde Firestore
     para que el frontend pueda mostrar el historial completo.
+    Solo muestra conversaciones del usuario autenticado.
     """
     try:
-        logger.info(f"[HISTORIAL] Consultando conversación: {conversation_id}")
+        logger.info(f"[HISTORIAL] Consultando conversación: {conversation_id} para usuario: {user_email}")
         
         db = firestore.Client(database=os.getenv("FIRESTORE_DATABASE", "pln-proyecto"))
         
         docs = db.collection(os.getenv("FIRESTORE_COLLECTION", "logs-agente")).where(
             "conversation_id", "==", conversation_id
+        ).where(
+            "user_email", "==", user_email
         ).order_by("timestamp").stream()
         
         messages = []
@@ -164,6 +182,58 @@ async def obtener_historial(conversation_id: str):
         logger.error(f"[HISTORIAL] Error consultando historial: {e}")
         raise HTTPException(status_code=500, detail=f"Error consultando historial: {str(e)}")
 
+@app.get("/conversaciones/{user_email}", response_model=ConversationsListResponse)
+async def listar_conversaciones(user_email: str):
+    """
+    Lista todas las conversaciones de un usuario específico.
+    
+    Agrupa los logs por conversation_id y devuelve un resumen de cada conversación.
+    """
+    try:
+        logger.info(f"[CONVERSACIONES] Listando conversaciones para usuario: {user_email}")
+        
+        db = firestore.Client(database=os.getenv("FIRESTORE_DATABASE", "pln-proyecto"))
+        
+        # Obtener todos los logs del usuario
+        docs = db.collection(os.getenv("FIRESTORE_COLLECTION", "logs-agente")).where(
+            "user_email", "==", user_email
+        ).order_by("timestamp", direction=firestore.Query.DESCENDING).stream()
+        
+        # Agrupar por conversation_id
+        conversations_dict = {}
+        for doc in docs:
+            data = doc.to_dict()
+            conv_id = data.get("conversation_id")
+            
+            if conv_id not in conversations_dict:
+                conversations_dict[conv_id] = {
+                    "conversation_id": conv_id,
+                    "first_message": data.get("user_message", ""),
+                    "last_timestamp": data.get("timestamp", ""),
+                    "message_count": 1
+                }
+            else:
+                conversations_dict[conv_id]["message_count"] += 1
+                # Actualizar first_message si este mensaje es más antiguo (viene después en orden DESC)
+                conversations_dict[conv_id]["first_message"] = data.get("user_message", "")
+        
+        # Convertir a lista de ConversationSummary
+        conversations = [
+            ConversationSummary(**conv_data)
+            for conv_data in conversations_dict.values()
+        ]
+        
+        logger.info(f"[CONVERSACIONES] Se encontraron {len(conversations)} conversaciones")
+        
+        return ConversationsListResponse(
+            user_email=user_email,
+            conversations=conversations
+        )
+        
+    except Exception as e:
+        logger.error(f"[CONVERSACIONES] Error listando conversaciones: {e}")
+        raise HTTPException(status_code=500, detail=f"Error listando conversaciones: {str(e)}")
+
 @app.get("/health", response_model=HealthResponse)
 async def health_check():
     """
@@ -190,6 +260,7 @@ if __name__ == "__main__":
     logger.info("[MAIN] Endpoints disponibles:")
     logger.info("  - POST /chat")
     logger.info("  - GET /historial/{conversation_id}")
+    logger.info("  - GET /conversaciones/{user_email}")
     logger.info("  - GET /health")
     logger.info("  - GET /docs")
     

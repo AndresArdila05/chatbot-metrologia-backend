@@ -82,10 +82,12 @@ gcloud auth application-default login
 
 El proyecto usa dos colecciones en Firestore:
 
-- **Base de datos**: `pln-proyecto`
+- **Base de datos**: `pln-proyecto2`
 - **Colecciones**:
-  - `logs-agente`: Logs de conversaciones (user_message, agent_response, timestamp, conversation_id)
-  - `metrologia_checkpoints`: Checkpoints de memoria del agente
+  - `logs-agente`: Logs de conversaciones (user_message, agent_response, timestamp, conversation_id, **user_email**)
+  - `metrologia_checkpoints`: Checkpoints de memoria del agente (thread_id, checkpoint, metadata, timestamp, **user_email**)
+
+**Nota**: El campo `user_email` fue agregado para enlazar las conversaciones a usuarios específicos y permitir historial personalizado.
 
 #### 4. Qdrant Cloud
 
@@ -211,13 +213,14 @@ http://localhost:8080/docs
 
 #### 1. POST `/chat`
 
-Enviar un mensaje al chatbot.
+Enviar un mensaje al chatbot. **Requiere autenticación del usuario**.
 
 **Request**:
 ```json
 {
   "mensaje": "¿Qué es la calibración de instrumentos?",
-  "conversation_id": "conv-123-456"
+  "conversation_id": "conv-123-456",
+  "user_email": "usuario@unal.edu.co"
 }
 ```
 
@@ -230,9 +233,15 @@ Enviar un mensaje al chatbot.
 }
 ```
 
-#### 2. GET `/historial/{conversation_id}`
+**Nota**: El `user_email` se utiliza para enlazar la conversación al usuario y permitir el historial personalizado.
 
-Obtener el historial completo de una conversación.
+#### 2. GET `/historial/{conversation_id}?user_email={email}`
+
+Obtener el historial completo de una conversación específica del usuario.
+
+**Parámetros**:
+- `conversation_id` (path): ID de la conversación
+- `user_email` (query): Email del usuario autenticado
 
 **Response**:
 ```json
@@ -253,7 +262,39 @@ Obtener el historial completo de una conversación.
 }
 ```
 
-#### 3. GET `/health`
+**Nota**: Solo devuelve conversaciones del usuario especificado para garantizar privacidad.
+
+#### 3. GET `/conversaciones/{user_email}`
+
+Lista todas las conversaciones de un usuario específico.
+
+**Parámetros**:
+- `user_email` (path): Email del usuario
+
+**Response**:
+```json
+{
+  "user_email": "usuario@unal.edu.co",
+  "conversations": [
+    {
+      "conversation_id": "conv-123-456",
+      "first_message": "¿Qué es la calibración de instrumentos?",
+      "last_timestamp": "2025-10-27 14:30:00",
+      "message_count": 5
+    },
+    {
+      "conversation_id": "conv-789-012",
+      "first_message": "¿Cuáles son las normas ISO aplicables?",
+      "last_timestamp": "2025-10-26 10:15:00",
+      "message_count": 3
+    }
+  ]
+}
+```
+
+**Nota**: Útil para mostrar el historial de conversaciones en el frontend.
+
+#### 4. GET `/health`
 
 Verificación de estado del servicio.
 

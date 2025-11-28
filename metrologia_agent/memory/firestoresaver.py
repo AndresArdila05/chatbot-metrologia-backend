@@ -127,16 +127,22 @@ class FirestoreSaver(BaseCheckpointSaver):
     ) -> RunnableConfig:
         """Guarda un checkpoint en Firestore."""
         thread_id: str = config["configurable"]["thread_id"]
+        user_email: str = config["configurable"].get("user_email", "")
         timestamp: str = datetime.now(pytz.timezone('America/Bogota')).strftime('%Y-%m-%d %H:%M:%S')
         ts: str = checkpoint["id"]
         
         doc_ref: firestore.DocumentReference = self.db.collection(self.collection_name).document(thread_id)
-        doc_ref.set({
+        doc_data = {
             "checkpoint": self.serde.dumps(checkpoint),
             "metadata": self.serde.dumps(metadata),
             "thread_id": thread_id,
             "timestamp": timestamp
-        })
+        }
+        
+        if user_email:
+            doc_data["user_email"] = user_email
+        
+        doc_ref.set(doc_data)
 
         return {
             "configurable": {
@@ -154,18 +160,25 @@ class FirestoreSaver(BaseCheckpointSaver):
     ) -> RunnableConfig:
         """Guarda un checkpoint de forma asíncrona."""
         thread_id: str = config["configurable"]["thread_id"]
+        user_email: str = config["configurable"].get("user_email", "")
         timestamp: str = datetime.now(pytz.timezone('America/Bogota')).strftime('%Y-%m-%d %H:%M:%S')
         ts: str = checkpoint["id"]
         
         doc_ref: firestore.AsyncDocumentReference = self.async_db.collection(
             self.collection_name
         ).document(thread_id)
-        await doc_ref.set({
+        
+        doc_data = {
             "checkpoint": self.serde.dumps(checkpoint),
             "metadata": self.serde.dumps(metadata),
             "thread_id": thread_id,
             "timestamp": timestamp
-        })
+        }
+        
+        if user_email:
+            doc_data["user_email"] = user_email
+        
+        await doc_ref.set(doc_data)
 
         return {
             "configurable": {
